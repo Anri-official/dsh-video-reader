@@ -1,0 +1,21 @@
+# 下载来的工具链——体积大且可重新获取，绝不入库
+skill/bin/
+skill/python/
+skill/models/
+skill/ffmpeg/
+skill/sherpa-onnx-*/
+skill/tmp/
+
+# 运行产出
+skill/out/
+skill/frames/
+
+# 本地环境
+.env
+.env.local
+*.log
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini
