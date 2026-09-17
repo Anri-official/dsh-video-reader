@@ -40,6 +40,7 @@ this file). Do not assume an absolute path.
 | `-Lang zh\|en\|ja\|ko\|yue\|auto` | **Must match the content.** Defaults to `zh`; auto-switches if the metadata declares a language. |
 | `-FramesEvery <sec>` | Also dump keyframes to `frames\` for reading with an image tool. |
 | `-NoAsr` | Stop after metadata + subtitles. |
+| `-KeepMedia` | Keep the downloaded audio track. **Default: deleted after the run.** |
 
 Requires `-WithLocalAsr` at setup time. Without it this script only produces metadata + subtitles.
 
@@ -51,9 +52,21 @@ Requires `-WithLocalAsr` at setup time. Without it this script only produces met
 | `-CropBottom <frac>` | Keep only the bottom slice (e.g. `0.20`) for hard-subtitle videos. Cuts image tokens ~5× without losing subtitle resolution. |
 | `-Mode text\|code` | `code` tells the model to preserve indentation and symbols. |
 | `-MaxFrames` | Hard cap; each frame is one API request. |
+| `-KeepMedia` | Keep the downloaded low-res video. **Default: deleted.** |
+| `-KeepFrames` | Keep the extracted frames. **Default: deleted once OCR is done.** |
 
 Needs a key in `VISION_API_KEY` (or `DEEPSEEK_API_KEY`). Optional overrides:
 `VISION_BASE`, `VISION_MODEL`, `VISION_CONCURRENCY`.
+
+## Disk footprint — assume nothing is left behind
+
+Downloaded media is only the cost of getting at the text, so **both scripts delete it by default**.
+A 10-minute video leaves roughly **50 KB** (transcript + metadata) instead of 20–30 MB. Pass
+`-KeepMedia` / `-KeepFrames` when the source needs re-examination.
+
+Nothing is written outside `-OutDir`: no yt-dlp cache, no system temp residue, no PyInstaller unpack
+directory — that last one is exactly why the project uses an embedded-Python zipapp rather than
+`yt-dlp.exe`. When telling the user what a run costs in disk, say KB, not MB.
 
 ## Decision order — always cheapest first
 

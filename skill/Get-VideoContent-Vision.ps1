@@ -21,7 +21,12 @@ param(
   [int]$MaxFrames = 150,
   [double]$CropBottom = 0,        # >0 时只裁底部这块（占高度比例），如 0.20 = 底部 20%
   [ValidateSet('text', 'code')][string]$Mode = 'text',
-  [int]$MaxHeight = 480           # 画面下载高度上限
+  [int]$MaxHeight = 480,          # 画面下载高度上限
+  # 默认删掉下载来的低清画面（10 分钟约 22MB），只留识别出的文字。
+  [switch]$KeepMedia,
+  # 抽出的帧在 OCR 完成后通常已无用（文字已提取），默认一并删除，让每次运行只剩几十 KB。
+  # 想事后逐帧复核画面的，加这个开关。
+  [switch]$KeepFrames
 )
 
 $ErrorActionPreference = 'Stop'
@@ -134,9 +139,29 @@ $head += ""
 $body = ($head -join "`n") + (Get-Content $ocrOut -Raw -Encoding UTF8)
 $final = Join-Path $OutDir 'transcript-vision.md'
 $body | Set-Content $final -Encoding UTF8
+
+# ---------- 清理中间产物 ----------
+# 画面和帧都只是"为了拿到文字"而付出的下载与解码成本；文字落地后它们就是纯占用。
+# 默认删掉，让一次运行只留下几十 KB。
+$freed = 0
+if (-not $KeepMedia -and (Test-Path $Work)) {
+  $freed += (Get-ChildItem $Work -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+  Remove-Item $Work -Recurse -Force -ErrorAction SilentlyContinue
+}
+if (-not $KeepFrames -and (Test-Path $Frames)) {
+  $freed += (Get-ChildItem $Frames -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+  Remove-Item $Frames -Recurse -Force -ErrorAction SilentlyContinue
+}
+if ($freed -gt 0) {
+  Write-Host "已清理中间产物（释放 $([math]::Round($freed/1MB,1)) MB）—— 保留请加 -KeepMedia / -KeepFrames"
+}
+
 Write-Host ""
 Write-Host "完成 -> $final"
 Write-Host "字符数: $($body.Length)"
+$total = [math]::Round((Get-ChildItem $OutDir -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum / 1KB, 1)
+Write-Host "本次占用: $total KB"
+
 
 
 

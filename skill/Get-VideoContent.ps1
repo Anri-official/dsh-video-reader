@@ -27,6 +27,8 @@ param(
   [int]$FramesEvery = 0,          # >0 时每 N 秒抽一帧
   [int]$MaxFrames = 60,
   [switch]$NoAsr,
+  # 默认删掉下载来的音轨（10 分钟约 19MB）。加这个开关才保留，便于复核或二次处理。
+  [switch]$KeepMedia,
   [switch]$Force
 )
 
@@ -286,9 +288,23 @@ if ($subText) {
 }
 $body.ToString() | Set-Content $transcriptPath -Encoding utf8
 
+# ---------- 清理中间产物 ----------
+# work\ 里是下载来的音轨（10 分钟约 19MB），只是中间产物，文字才是结果。
+# 默认删掉，避免每跑一次就在磁盘上留一份平台内容的副本、以及让 out\ 无限膨胀。
+if (-not $KeepMedia) {
+  if (Test-Path $Work) {
+    $freed = [math]::Round((Get-ChildItem $Work -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum / 1MB, 1)
+    Remove-Item $Work -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host "已清理中间媒体（释放 $freed MB）—— 要保留请加 -KeepMedia"
+  }
+}
+
 Write-Host ""
 Write-Host "完成 -> $transcriptPath"
 Write-Host "字符数: $($body.Length)"
+$total = [math]::Round((Get-ChildItem $OutDir -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum / 1KB, 1)
+Write-Host "本次占用: $total KB"
+
 
 
 
